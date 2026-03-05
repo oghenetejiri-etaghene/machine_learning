@@ -30,14 +30,14 @@ class RNN(nn.Module):
         return self.loss(predicted_vector, gold_label)
 
     def forward(self, inputs):
-        # [to fill] obtain hidden layer representation (https://pytorch.org/docs/stable/generated/torch.nn.RNN.html)
-        _, hidden = 
-        # [to fill] obtain output layer representations
-
-        # [to fill] sum over output 
-
-        # [to fill] obtain probability dist.
-
+        # obtain hidden layer representation (https://pytorch.org/docs/stable/generated/torch.nn.RNN.html)
+        output, hidden = self.rnn(inputs)
+        # obtain output layer representations
+        output = self.W(output)
+        # sum over output
+        output = torch.sum(output, dim=0)
+        # obtain probability dist.
+        predicted_vector = self.softmax(output)
         return predicted_vector
 
 
@@ -181,3 +181,27 @@ if __name__ == "__main__":
     # You may find it beneficial to keep track of training accuracy or training loss;
 
     # Think about how to update the model and what this entails. Consider ffnn.py and the PyTorch documentation for guidance
+
+    # Evaluate on test data
+    if args.test_data != "to fill":
+        print("========== Evaluating on test data ==========")
+        with open(args.test_data) as test_f:
+            testing = json.load(test_f)
+        test_raw = []
+        for elt in testing:
+            test_raw.append((elt["text"].split(), int(elt["stars"]-1)))
+
+        model.eval()
+        correct = 0
+        total = 0
+        for input_words, gold_label in tqdm(test_raw):
+            input_words = " ".join(input_words)
+            input_words = input_words.translate(input_words.maketrans("", "", string.punctuation)).split()
+            vectors = [word_embedding[i.lower()] if i.lower() in word_embedding.keys() else word_embedding['unk'] for i
+                       in input_words]
+            vectors = torch.tensor(vectors).view(len(vectors), 1, -1)
+            output = model(vectors)
+            predicted_label = torch.argmax(output)
+            correct += int(predicted_label == gold_label)
+            total += 1
+        print("Test accuracy: {}".format(correct / total))
