@@ -24,19 +24,19 @@ class FFNN(nn.Module):
         self.output_dim = 5
         self.W2 = nn.Linear(h, self.output_dim)
 
-        self.softmax = nn.LogSoftmax() # The softmax function that converts vectors into probability distributions; computes log probabilities for computational benefits
+        self.softmax = nn.LogSoftmax(dim=0) # The softmax function that converts vectors into probability distributions; computes log probabilities for computational benefits
         self.loss = nn.NLLLoss() # The cross-entropy/negative log likelihood loss taught in class
 
     def compute_Loss(self, predicted_vector, gold_label):
         return self.loss(predicted_vector, gold_label)
 
     def forward(self, input_vector):
-        # [to fill] obtain first hidden layer representation
-
-        # [to fill] obtain output layer representation
-
-        # [to fill] obtain probability dist.
-
+        # obtain first hidden layer representation
+        hidden = self.activation(self.W1(input_vector))
+        # obtain output layer representation
+        output = self.W2(hidden)
+        # obtain probability dist.
+        predicted_vector = self.softmax(output)
         return predicted_vector
 
 
@@ -162,10 +162,10 @@ if __name__ == "__main__":
         total = 0
         start_time = time.time()
         print("Validation started for epoch {}".format(epoch + 1))
+        model.eval()
         minibatch_size = 16 
         N = len(valid_data) 
         for minibatch_index in tqdm(range(N // minibatch_size)):
-            optimizer.zero_grad()
             loss = None
             for example_index in range(minibatch_size):
                 input_vector, gold_label = valid_data[minibatch_index * minibatch_size + example_index]
@@ -183,5 +183,22 @@ if __name__ == "__main__":
         print("Validation accuracy for epoch {}: {}".format(epoch + 1, correct / total))
         print("Validation time for this epoch: {}".format(time.time() - start_time))
 
-    # write out to results/test.out
-    
+    # Evaluate on test data
+    if args.test_data != "to fill":
+        print("========== Evaluating on test data ==========")
+        with open(args.test_data) as test_f:
+            testing = json.load(test_f)
+        test_raw = []
+        for elt in testing:
+            test_raw.append((elt["text"].split(), int(elt["stars"]-1)))
+        test_data = convert_to_vector_representation(test_raw, word2index)
+
+        model.eval()
+        correct = 0
+        total = 0
+        for input_vector, gold_label in test_data:
+            predicted_vector = model(input_vector)
+            predicted_label = torch.argmax(predicted_vector)
+            correct += int(predicted_label == gold_label)
+            total += 1
+        print("Test accuracy: {}".format(correct / total))
